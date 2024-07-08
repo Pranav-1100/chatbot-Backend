@@ -29,6 +29,13 @@ exports.handleChat = async (req, res) => {
       console.log('Processing message with OpenAI...');
       openaiResponse = await openaiService.processMessage(conversation.messages);
       console.log('OpenAI response received:', openaiResponse);
+      // if (typeof openaiResponse === 'object' && openaiResponse.emailSent !== undefined) {
+      //   if (openaiResponse.emailSent) {
+      //     openaiResponse.content += " A confirmation email has been sent to your email address.";
+      //   } else {
+      //     openaiResponse.content += " We couldn't send a confirmation email at this time, but your booking is confirmed.";
+      //   }
+      // }
     } catch (error) {
       console.error('Error processing message with OpenAI:', error);
       return res.status(500).json({ error: 'An error occurred while processing your message.' });

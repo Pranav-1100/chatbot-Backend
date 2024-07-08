@@ -12,19 +12,21 @@ const getRoomOptions = async () => {
   }
 };
 
-const bookRoom = async ({ roomId, fullName, email, nights }) => {
+async function bookRoom(roomId, fullName, email, nights) {
+  console.log('Booking room:', roomId, fullName, email, nights);
   try {
-    const response = await axios.post(`${API_BASE_URL}/book`, {
-      roomId,
-      fullName,
-      email,
-      nights
+    const response = await axios.post('https://bot9assignement.deno.dev/book', {
+      roomId:roomId,
+      fullName: fullName,
+      email: email,
+      nights: nights
     });
+    console.log('Room booked:', response.data); 
     return response.data;
-  } catch (error) {
+    
+  } catch (error) { 
     console.error('Error booking room:', error);
-    throw error;
+    return null;
   }
-};
-
+}
 module.exports = { getRoomOptions, bookRoom };

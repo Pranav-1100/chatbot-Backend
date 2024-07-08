@@ -1,34 +1,13 @@
 const OpenAI = require('openai');
 const roomService = require('./roomService');
 const sequelize = require('../config/database');
+require('dotenv').config();
+const sendMail = require('./emailService');
 
 const openai = new OpenAI({
-    apiKey: "process.env.OPENAI_API_KEY",
+    apiKey: process.env.OPENAI_API_KEY, 
     baseURL: "https://api.openai.com/v1" // Switch to official OpenAI API endpoint
 });
-const userContext = {};
-
-const clearUserContext = () => {
-    Object.keys(userContext).forEach(key => delete userContext[key]);
-};
-  
-  // Add this function after your other functions
-  const resetApplication = async () => {
-    try {
-        // Reset database
-        await sequelize.sync({ force: true });
-        console.log('Database reset');
-
-        // Clear in-memory data
-        clearUserContext();
-        console.log('User context cleared');
-
-        console.log('Application reset complete');
-    } catch (error) {
-        console.error('Error resetting application:', error);
-        throw error;
-    }
-};
 
 const processMessage = async (messages) => {
     try {
@@ -44,7 +23,15 @@ const processMessage = async (messages) => {
 
         const completion = await openai.chat.completions.create({
             model: "gpt-3.5-turbo",
-            messages: messages,
+            // messages: messages,
+            messages: [
+                {
+                    role: "system",
+                    content: "You are a helpful assistant for a hotel booking service. If someone greets you, simply greet and say that I can help you out with hotel room booking options and provide some emojis in between the chats always give the chats in ordered manner.If asked about showing all options then call getRoomOptions function to fulfill it. If asked about topics unrelated to hotel booking, politely redirect the conversation. When discussing rooms, provide detailed information and recommendations based on user preferences. When someone asks to book a room, show all the options with a line break for each option and don't save booking without taking name, email, and nights. If someone asks to book a room without providing all the required information, ask for the missing information. After getting all the details, ask the user to confirm the booking and if confirmed, then call the fucntion bookRoom and get the detail from there and provide all the response from there and break line by line put some emoji in the chats make bullets point for all the info get from the booRoom. behave like a friend and can use slang language. You are a helpful and friendly assistant for a hotel booking service . If someone greets you, simply greet and say that I can help you out with hotel room booking options and provide some emojis in between the chats always give the chats in ordered manner. If someone asks for room booking don't simply just ask them their personal information, first ask them their preference and show rooms according to it and if no preference then show them all the available options for rooms and after confirming which room to book then ask their personal information. If asked about topics unrelated to hotel booking, politely redirect the conversation regarding hotel booking. When discussing rooms, provide detailed information and recommendations based on user preferences. When someone asks for room booking then show all the options with breaking line for each option and dont save booking without taking name email and nights. If someone asks to book a room without providing all the required information, ask for the missing information. After getting all the details, ask the user to confirm the booking and if confirmed, then call the fucntion bookRoom and get the detail from there and provide all the response from there and break line by line put some emoji in the chats make bullets point for all the info get from the bookRoom."
+                },
+                ...messages
+            ],
+
             functions: [
                 {
                     name: "get_room_options",
@@ -96,14 +83,8 @@ const processMessage = async (messages) => {
             if (functionName === "get_room_options") {
                 functionResult = await roomService.getRoomOptions();
             } else if (functionName === "book_room") {
-                // Check if user details are provided
-                if (!functionArgs.fullName || !functionArgs.email) {
-                    return {
-                        askForDetails: true,
-                        message: 'Please provide your full name and email to proceed with the booking.'
-                    };
-                }
-                functionResult = await roomService.bookRoom(functionArgs);
+                functionResult = await roomService.bookRoom(functionArgs.roomId, functionArgs.fullName, functionArgs.email, functionArgs.nights);
+                sendMail(functionArgs.email, 'Room Booking Confirmation', `Your booking is confirmed. Room ID: ${functionArgs.roomId}, Name: ${functionArgs.fullName}, Nights: ${functionArgs.nights}`);
             }
 
             console.log('Function result:', functionResult);
@@ -148,4 +129,4 @@ const processMessage = async (messages) => {
     }
 };
 
-module.exports = { processMessage, resetApplication, clearUserContext };
+module.exports = { processMessage };
