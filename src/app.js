@@ -9,7 +9,7 @@ const User = require('./models/User');
 // const { processMessage, resetApplication, clearUserContext } = require('./services/openaiService');
 require('dotenv').config();
 
-const app = express();
+const app = express(); 
 
 app.use(cors());
 app.use(bodyParser.json());
